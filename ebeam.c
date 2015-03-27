@@ -40,6 +40,7 @@
 #define USB_VENDOR_ID_EFI	0x2650	/* Electronics For Imaging, Inc	*/
 #define USB_DEVICE_ID_EFI_EBEAM_BT_USB	0x1320	/* eBeam hardware :	 USB Device in USB	*/
 #define USB_DEVICE_ID_EFI_EBEAM_USB	0x1315	/* eBeam hardware :	 BT Device in USB	*/
+#define USB_DEVICE_ID_EFI_EBEAM_USB2	0x1311	/* eBeam hardware :	 BT Device in USB	*/
 #define USB_DEVICE_ID_EFI_EBEAM_BT	0x1313	/* eBeam hardware :	 BT Device in USB	*/
 					/*	Luidia Classic and Edge	*/
 					/*	Nec NP01Wi1 & NP01Wi2	*/
@@ -98,6 +99,8 @@ enum {
 
 static const struct usb_device_id ebeam_devices[] = {
 	{USB_DEVICE(USB_VENDOR_ID_EFI, USB_DEVICE_ID_EFI_EBEAM_USB),
+			.driver_info = DEVTYPE_EBEAM},
+	{USB_DEVICE(USB_VENDOR_ID_EFI, USB_DEVICE_ID_EFI_EBEAM_USB2),
 			.driver_info = DEVTYPE_EBEAM},
 	{USB_DEVICE(USB_VENDOR_ID_EFI, USB_DEVICE_ID_EFI_EBEAM_BT_USB),
 			.driver_info = DEVTYPE_EBEAM},
