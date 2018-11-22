@@ -204,7 +204,7 @@ static ssize_t ebeam_##MM##_set(struct device *dev,			       \
 	ebeam->newsetting.MM = MM;					       \
 	return count;							       \
 }									       \
-static DEVICE_ATTR(MM, S_IRUGO | S_IWUGO,				       \
+static DEVICE_ATTR(MM, S_IRUGO | S_IWUSR | S_IWGRP,				       \
 		   ebeam_##MM##_get,					       \
 		   ebeam_##MM##_set)
 
@@ -238,7 +238,7 @@ static ssize_t ebeam_h##SET_ID##_set(struct device *dev,		       \
 	ebeam->newsetting.h##SET_ID = h;				       \
 	return count;							       \
 }									       \
-static DEVICE_ATTR(h##SET_ID, S_IRUGO | S_IWUGO,			       \
+static DEVICE_ATTR(h##SET_ID, S_IRUGO | S_IWUSR | S_IWGRP,			       \
 		   ebeam_h##SET_ID##_get,				       \
 		   ebeam_h##SET_ID##_set)
 
@@ -295,7 +295,7 @@ static ssize_t ebeam_calibrated_set(struct device *dev,
 	return count;
 }
 
-static DEVICE_ATTR(calibrated, S_IRUGO | S_IWUGO,
+static DEVICE_ATTR(calibrated, S_IRUGO | S_IWUSR | S_IWGRP,
 		   ebeam_calibrated_get, ebeam_calibrated_set);
 
 static struct attribute *ebeam_attrs[] = {
