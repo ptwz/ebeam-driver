@@ -2,8 +2,15 @@ eBeam kernel module v0.9
 
 Compilation :
 
+General:
 Install the tools needed to compile kernel modules, see your linux
 distribution's documentation.
+
+Using DKMS:
+$ sudo dkms add ebeam-driver
+$ sudo dkms build ebeam -v 1.1
+$ sudo dkms install -m ebeam -v 1.1
+
 
 Unpack the ebeam archive, and :
 
