@@ -54,10 +54,9 @@ class ebeam(object):
         (0x2650, 0x1313): "eBeam BT"
         }
 
-    _calmatrix = [ 1, 0, 0, 0,
-                   0, 1, 0, 0,
-                   0, 0, 1, 0,
-                   0, 0, 0, 1 ]
+    _calmatrix = [ 1, 0, 0, 
+                   0, 1, 0,
+                   0, 0, 1 ] 
 
     def __init__(self):
         for key in self._supported_devices:

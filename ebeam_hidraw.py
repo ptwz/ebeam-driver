@@ -50,10 +50,9 @@ class ebeam(object):
     _fmt = "<bHHbbb"
     _tuple = namedtuple("ebeam_pkt", "sensors,raw_x,raw_y,fiability1,buttons,fiability2".split(","))
 
-    _calmatrix = [ 1, 0, 0, 0,
-                   0, 1, 0, 0,
-                   0, 0, 1, 0,
-                   0, 0, 0, 1 ]
+    _calmatrix = [ 1, 0, 0,
+                   0, 1, 0,
+                   0, 0, 1 ]
 
     def __init__(self, devname):
         self.dev = open(devname, "rb")
@@ -62,6 +61,7 @@ class ebeam(object):
         self.raw_x = 0
         self.raw_y = 0
         self.buttons = [0, 0, 0]
+        self.calibrated = False
 
     def run(self):
         while True:
@@ -77,17 +77,34 @@ class ebeam(object):
             # All bits set: Position should be valid
             self.raw_x = data.raw_x
             self.raw_y = data.raw_y
-            self.buttons = [ (self.buttons & 1 == 0), # bit0 inverted!!!
-                             (self.buttons & 2 == 1),
-                             (self.buttons & 4 == 1)
+
+            scale = self._calmatrix[6] * self.raw_x + self._calmatrix[7] * self.raw_y + self._calmatrix[8];
+
+            if scale==0:
+                return
+
+            if self.calibrated:
+                self.x = (self._calmatrix[0] * self.raw_x +
+                               self._calmatrix[1] * self.raw_y +
+                               self._calmatrix[2]) / scale
+                self.y = (self._calmatrix[3] * self.raw_x +
+                               self._calmatrix[4] * self.raw_y +
+                               self._calmatrix[5]) / scale 
+            else:
+                self.x = self.raw_x
+                self.y = self.raw_y
+
+            self.buttons = [ (data.buttons & 1 == 0), # bit0 inverted!!!
+                             (data.buttons & 2 == 1),
+                             (data.buttons & 4 == 1)
                              ]
         self.got_frame()
 
-    def got_frame(self, data):
+    def got_frame(self):
         """
         Stub for implementing proper drivers
         """
-        logging.error( "raw_x={} raw_y={} buttons={}".format(self.raw_x, self.raw_y, self.buttons ) )
+        logging.error( "pos=({}|{}) raw_x={} raw_y={} buttons={}".format(self.x, self.y, self.raw_x, self.raw_y, self.buttons ) )
 
 class ebeam_evdev(ebeam):
     """
@@ -103,17 +120,18 @@ class ebeam_evdev(ebeam):
 
     def __init__(self, devname):
         ebeam.__init__(self, devname)
-        ui = UInput(cap, name='ebeam', version=0x01)
+        self.ui = UInput(self.cap, name='ebeam', version=0x01)
 
-    def got_frame(self, data):
-        logging.error( repr(data) )
-        ui.write(ec.EV_ABS, ec.ABS_X, self.raw_x)
-        ui.write(ec.EV_ABS, ec.ABS_Y, self.raw_y)
-        ui.write(ec.EV_KEY, ec.BTN_LEFT, self.buttons[0])
-        ui.write(ec.EV_KEY, ec.BTN_MIDDLE, self.buttons[1])
-        ui.write(ec.EV_KEY, ec.BTN_RIGHT, self.buttons[2])
-        ui.syn()
+    def got_frame(self):
+        logging.error( "pos=({}|{}) raw_x={} raw_y={} buttons={}".format(self.x, self.y, self.raw_x, self.raw_y, self.buttons ) )
+        self.ui.write(ec.EV_ABS, ec.ABS_X, self.raw_x)
+        self.ui.write(ec.EV_ABS, ec.ABS_Y, self.raw_y)
+        self.ui.write(ec.EV_KEY, ec.BTN_LEFT, self.buttons[0])
+        self.ui.write(ec.EV_KEY, ec.BTN_MIDDLE, self.buttons[1])
+        self.ui.write(ec.EV_KEY, ec.BTN_RIGHT, self.buttons[2])
+        self.ui.syn()
     
 
-x = ebeam("/dev/hidraw0")
+x = ebeam_evdev("/dev/hidraw0")
+
 x.run()
