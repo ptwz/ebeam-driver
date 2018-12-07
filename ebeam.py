@@ -1,9 +1,11 @@
 import logging
 import struct
+import os
+import re
 from collections import namedtuple, deque
 from evdev import UInput, AbsInfo, ecodes as ec
 from time import time
-
+from re import split
 
 class ebeam(object):
     """
@@ -56,13 +58,38 @@ class ebeam(object):
     """
     _fmt = "<BHHBBB"
     _tuple = namedtuple("ebeam_pkt", "sensors,raw_x,raw_y,keyboard,buttons,fiability2".split(","))
-
+    _valid_devices = { "2650": ("1311", "1320", "1313") }
     _calmatrix = [ 1, 0, 0,
                    0, 1, 0,
                    0, 0, 1 ]
 
-    def __init__(self, devname):
-        self.dev = open(devname, "rb")
+    def __init__(self, devname=None):
+        if devname is not None:
+            self.probe(devname)
+            return
+
+        for n in range(100):
+            try:
+                self.probe("hidraw{}".format(n))
+                return
+            except IOError as e:
+                logging.error("{}: Looking for next device...".format(e))
+                continue
+
+    def probe(self, devname):
+        # Check for supported device (VID/PID)
+        devpath = os.readlink("/sys/class/hidraw/{}/device".format(devname))
+        bus_addr = devpath.split("/")[-1]
+        usb_part = re.split("[:.]", bus_addr)
+        if len(usb_part) < 4:
+            raise IOError("{} has no proper USB device link?!".format(devname))
+        (vid, pid) = usb_part[1:3]
+        if vid not in self._valid_devices:
+            raise IOError("{} does not match the known VIDs.".format(devname))
+        if pid not in self._valid_devices[vid]:
+            raise IOError("{} does not match the known PIDs.".format(devname))
+
+        self.dev = open("/dev/"+devname, "rb")
         self.ok = False
         self._pktlen = struct.calcsize(self._fmt)
         self.raw_x = 0
@@ -82,7 +109,7 @@ class ebeam(object):
 
     def process_frame(self, pkt):
         data = self._tuple(*struct.unpack(self._fmt, pkt))
-        if data.sensors & 3 == 3:
+        if (data.sensors & 0xf) == 3:
             # All bits set: Datagram should be valid
 
             if data.buttons == 0xFE:
@@ -91,6 +118,7 @@ class ebeam(object):
                 for x in self.keymap:
                     if data.keyboard & x:
                         self.keys.add(self.keymap[x])
+                self.buttons = [False]*3
             else:
                 # When actual buttons are pressed on stylus
                 self.raw_x = data.raw_x
@@ -113,13 +141,14 @@ class ebeam(object):
                     self.y = self.raw_y
 
                 self.buttons = [ (data.buttons & 1 == 0), # bit0 inverted!!!
-                                 (data.buttons & 2 == 1),
-                                 (data.buttons & 4 == 1)
+                                 (data.buttons & 8) > 0,
+                                 (data.buttons & 4) > 0
                          ]
-        self.got_frame(data)
+            self.got_frame(data)
 
     def got_frame(self, raw_data):
         """
         Stub for implementing proper drivers
         """
-        print (raw_data, self.keys)
+        print (raw_data, self.keys, self.buttons)
+        #print ("{}".format(hex(raw_data.buttons)))

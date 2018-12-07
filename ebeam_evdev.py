@@ -5,19 +5,21 @@ from evdev import UInput, AbsInfo, ecodes as ec
 from time import time
 from ebeam import ebeam
 
+
+
 class ebeam_evdev(ebeam):
     """
     Bridge ebeam data to evdev
     """
-    cap = {
-        ec.EV_KEY : [ec.KEY_LEFTCTRL, ec.KEY_P, ec.KEY_PRINT, ec.KEY_F11],
+    cap= {
+        ec.EV_KEY : [ec.KEY_LEFTCTRL, ec.KEY_P, ec.KEY_PRINT, ec.KEY_F11, ec.BTN_LEFT, ec.BTN_RIGHT, ec.BTN_MIDDLE],
         ec.EV_ABS : [
                 (ec.ABS_X, AbsInfo(value=0, min=0, max=0xFFFF, fuzz=0, flat=0, resolution=0)),
                 (ec.ABS_Y, AbsInfo(value=0, min=0, max=0xFFFF, fuzz=0, flat=0, resolution=0)),
                 ]
     }
 
-    def __init__(self, devname):
+    def __init__(self, devname=None):
         ebeam.__init__(self, devname)
         self.ui = UInput(self.cap, name='ebeam', version=0x01)
         self.cur_x = None
@@ -61,6 +63,6 @@ class ebeam_evdev(ebeam):
         self.ui.syn()
     
 
-x = ebeam_evdev("/dev/hidraw0")
+x = ebeam_evdev()
 
 x.run()
