@@ -1,8 +1,8 @@
 import logging
 import struct
-from collections import namedtuple
+from collections import namedtuple, deque
 from evdev import UInput, AbsInfo, ecodes as ec
-
+from time import time
 
 
 class ebeam(object):
@@ -121,14 +121,40 @@ class ebeam_evdev(ebeam):
     def __init__(self, devname):
         ebeam.__init__(self, devname)
         self.ui = UInput(self.cap, name='ebeam', version=0x01)
+        self.cur_x = None
+        self.cur_y = None
+        self.lasttime = time()
+        self.button_queue = deque([], 3)
+
+    def average_buttons(self, buttons):
+        self.button_queue.append(buttons)
+        count = [0, 0, 0]
+        l = len(self.button_queue)
+        for x in self.button_queue:
+            for i in range(3):
+                if x[i]: 
+                    count[i] += 1
+        return [ x > (l/2) for x in count]
 
     def got_frame(self):
-        logging.error( "pos=({}|{}) raw_x={} raw_y={} buttons={}".format(self.x, self.y, self.raw_x, self.raw_y, self.buttons ) )
-        self.ui.write(ec.EV_ABS, ec.ABS_X, self.raw_x)
-        self.ui.write(ec.EV_ABS, ec.ABS_Y, self.raw_y)
-        self.ui.write(ec.EV_KEY, ec.BTN_LEFT, self.buttons[0])
-        self.ui.write(ec.EV_KEY, ec.BTN_MIDDLE, self.buttons[1])
-        self.ui.write(ec.EV_KEY, ec.BTN_RIGHT, self.buttons[2])
+        now = time()
+        delta_t = now-self.lasttime
+        logging.error( "pos=({}|{}) raw_x={} raw_y={} buttons={} delta_t={}".format(self.x, self.y, self.raw_x, self.raw_y, self.buttons, delta_t ) )
+        self.lasttime = now
+        # Smooth X/Y data
+        if self.cur_x == None:
+            self.cur_x = self.x
+            self.cur_y = self.y
+        self.cur_x = (self.cur_x + self.x)/2
+        self.cur_y = (self.cur_y + self.y)/2
+        # Majority-Vote buttons
+        btn = self.average_buttons(self.buttons)
+
+        self.ui.write(ec.EV_ABS, ec.ABS_X, self.x)
+        self.ui.write(ec.EV_ABS, ec.ABS_Y, self.y)
+        self.ui.write(ec.EV_KEY, ec.BTN_LEFT, btn[0])
+        self.ui.write(ec.EV_KEY, ec.BTN_MIDDLE, btn[1])
+        self.ui.write(ec.EV_KEY, ec.BTN_RIGHT, btn[2])
         self.ui.syn()
     
 
