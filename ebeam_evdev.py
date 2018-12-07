@@ -12,7 +12,7 @@ class ebeam_evdev(ebeam):
     Bridge ebeam data to evdev
     """
     cap= {
-        ec.EV_KEY : [ec.KEY_LEFTCTRL, ec.KEY_P, ec.KEY_PRINT, ec.KEY_F11, ec.BTN_LEFT, ec.BTN_RIGHT, ec.BTN_MIDDLE],
+        ec.EV_KEY : [ec.KEY_LEFTCTRL, ec.KEY_P, ec.KEY_PRINT, ec.KEY_F11, ec.BTN_LEFT, ec.BTN_RIGHT, ec.BTN_MIDDLE, ec.KEY_F24],
         ec.EV_ABS : [
                 (ec.ABS_X, AbsInfo(value=0, min=0, max=0xFFFF, fuzz=0, flat=0, resolution=0)),
                 (ec.ABS_Y, AbsInfo(value=0, min=0, max=0xFFFF, fuzz=0, flat=0, resolution=0)),
@@ -40,7 +40,7 @@ class ebeam_evdev(ebeam):
     def got_frame(self, raw_data):
         now = time()
         delta_t = now-self.lasttime
-        logging.debug( "pos=({}|{}) raw_x={} raw_y={} buttons={} delta_t={}".format(self.x, self.y, self.raw_x, self.raw_y, self.buttons, delta_t ) )
+        logging.debug( "pos=({}|{}) raw_x={} raw_y={} buttons={} delta_t={}".format(self.cur_x, self.cur_y, self.raw_x, self.raw_y, self.buttons, delta_t ) )
         self.lasttime = now
 
         # Smooth X/Y data
@@ -60,6 +60,7 @@ class ebeam_evdev(ebeam):
         self.ui.write(ec.EV_KEY, ec.KEY_LEFTCTRL, "PRINT" in self.keys)
         self.ui.write(ec.EV_KEY, ec.KEY_P, "PRINT" in self.keys)
         self.ui.write(ec.EV_KEY, ec.KEY_F11, "FULLSCREEN" in self.keys)
+        self.ui.write(ec.EV_KEY, ec.KEY_F24, "CALIBRATE" in self.keys)
         self.ui.syn()
     
 

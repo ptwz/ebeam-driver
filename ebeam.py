@@ -71,7 +71,7 @@ class ebeam(object):
         for n in range(100):
             try:
                 self.probe("hidraw{}".format(n))
-                return
+                break
             except IOError as e:
                 logging.error("{}: Looking for next device...".format(e))
                 continue
@@ -94,6 +94,8 @@ class ebeam(object):
         self._pktlen = struct.calcsize(self._fmt)
         self.raw_x = 0
         self.raw_y = 0
+        self.x = 0
+        self.y = 0
         self.buttons = [0, 0, 0]
         self.calibrated = False
         self.keymap = {0x02: "FULLSCREEN", 0x04: "MIRROR", 0x08: "PRINT", 0x10: "EMAIL", 0x20: "MOVIE", 0x40: "CALIBRATE"}
