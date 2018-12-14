@@ -1,13 +1,13 @@
 import logging
 import struct
+import time
 from collections import namedtuple, deque
 from evdev import UInput, AbsInfo, ecodes as ec
-from time import time
-from ebeam import ebeam
+from ebeam import ebeamHidraw
 
 
 
-class ebeam_evdev(ebeam):
+class ebeam_evdev(ebeamHidraw):
     """
     Bridge ebeam data to evdev
     """
@@ -20,11 +20,11 @@ class ebeam_evdev(ebeam):
     }
 
     def __init__(self, devname=None):
-        ebeam.__init__(self, devname)
+        ebeamHidraw.__init__(self, devname)
         self.ui = UInput(self.cap, name='ebeam', version=0x01)
         self.cur_x = None
         self.cur_y = None
-        self.lasttime = time()
+        self.lasttime = time.time()
         self.button_queue = deque([], 3)
 
     def average_buttons(self, buttons):
@@ -38,7 +38,7 @@ class ebeam_evdev(ebeam):
         return [ x > (l/2) for x in count]
 
     def got_frame(self, raw_data):
-        now = time()
+        now = time.time()
         delta_t = now-self.lasttime
         logging.debug( "pos=({}|{}) raw_x={} raw_y={} buttons={} delta_t={}".format(self.cur_x, self.cur_y, self.raw_x, self.raw_y, self.buttons, delta_t ) )
         self.lasttime = now
@@ -62,8 +62,14 @@ class ebeam_evdev(ebeam):
         self.ui.write(ec.EV_KEY, ec.KEY_F11, "FULLSCREEN" in self.keys)
         self.ui.write(ec.EV_KEY, ec.KEY_F24, "CALIBRATE" in self.keys)
         self.ui.syn()
-    
 
-x = ebeam_evdev()
 
-x.run()
+daemonize = False
+
+while True:
+    x = ebeam_evdev()
+    x.run()
+    if not daemonize:
+        break
+    time.sleep(.5)
+

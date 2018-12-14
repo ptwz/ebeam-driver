@@ -64,32 +64,6 @@ class ebeam(object):
                    0, 0, 1 ]
 
     def __init__(self, devname=None):
-        if devname is not None:
-            self.probe(devname)
-            return
-
-        for n in range(100):
-            try:
-                self.probe("hidraw{}".format(n))
-                break
-            except IOError as e:
-                logging.error("{}: Looking for next device...".format(e))
-                continue
-
-    def probe(self, devname):
-        # Check for supported device (VID/PID)
-        devpath = os.readlink("/sys/class/hidraw/{}/device".format(devname))
-        bus_addr = devpath.split("/")[-1]
-        usb_part = re.split("[:.]", bus_addr)
-        if len(usb_part) < 4:
-            raise IOError("{} has no proper USB device link?!".format(devname))
-        (vid, pid) = usb_part[1:3]
-        if vid not in self._valid_devices:
-            raise IOError("{} does not match the known VIDs.".format(devname))
-        if pid not in self._valid_devices[vid]:
-            raise IOError("{} does not match the known PIDs.".format(devname))
-
-        self.dev = open("/dev/"+devname, "rb")
         self.ok = False
         self._pktlen = struct.calcsize(self._fmt)
         self.raw_x = 0
@@ -100,6 +74,7 @@ class ebeam(object):
         self.calibrated = False
         self.keymap = {0x02: "FULLSCREEN", 0x04: "MIRROR", 0x08: "PRINT", 0x10: "EMAIL", 0x20: "MOVIE", 0x40: "CALIBRATE"}
         self.keys = set()
+        self.devname = None
 
     def run(self):
         while True:
@@ -154,3 +129,41 @@ class ebeam(object):
         """
         print (raw_data, self.keys, self.buttons)
         #print ("{}".format(hex(raw_data.buttons)))
+
+
+class ebeamHidraw(ebeam):
+    def __init__(self, devname=None):
+        ebeam.__init__(self, devname)
+        if devname is not None:
+            self.probe(devname)
+            return
+
+        for n in range(100):
+            try:
+                self.probe("hidraw{}".format(n))
+                break
+            except IOError as e:
+                logging.error("{}: Looking for next device...".format(e))
+                continue
+        if self.devname is not None:
+            self.dev = open("/dev/"+self.devname, "rb")
+        else:
+            raise OSError("No device found")
+
+    def probe(self, devname):
+        # Check for supported device (VID/PID) before opening
+        try:
+            devpath = os.readlink("/sys/class/hidraw/{}/device".format(devname))
+        except OSError:
+            raise IOError("{} device does not exist".format(devname))
+        bus_addr = devpath.split("/")[-1]
+        usb_part = re.split("[:.]", bus_addr)
+        if len(usb_part) < 4:
+            raise IOError("{} has no proper USB device link?!".format(devname))
+        (vid, pid) = usb_part[1:3]
+        if vid not in self._valid_devices:
+            raise IOError("{} does not match the known VIDs.".format(devname))
+        if pid not in self._valid_devices[vid]:
+            raise IOError("{} does not match the known PIDs.".format(devname))
+
+        self.devname = devname
