@@ -143,7 +143,7 @@ class ebeamHidraw(ebeam):
                 self.probe("hidraw{}".format(n))
                 break
             except IOError as e:
-                logging.error("{}: Looking for next device...".format(e))
+                logging.debug("{}: Looking for next device...".format(e))
                 continue
         if self.devname is not None:
             self.dev = open("/dev/"+self.devname, "rb")

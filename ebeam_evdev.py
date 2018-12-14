@@ -64,12 +64,36 @@ class ebeam_evdev(ebeamHidraw):
         self.ui.syn()
 
 
-daemonize = False
+import argparse
+parser = argparse.ArgumentParser()
+parser.add_argument("-d", "--debug",
+    help="Window width in frames",
+    action="store_true")
+parser.add_argument("-f", "--foreground",
+    help="Window width in frames",
+    action="store_true")
+parser.add_argument("-n", "--noretry",
+    help="Do not try to rediscover device if it gets disconnected",
+    action="store_true")
+
+args = parser.parse_args()
+
+if args.debug:
+    logging.basicConfig(level=logging.DEBUG)
+else:
+    logging.basicConfig(level=logging.INFO)
 
 while True:
-    x = ebeam_evdev()
-    x.run()
-    if not daemonize:
+    try:
+        x = ebeam_evdev()
+        logging.info("Device found")
+        x.run()
+    except IOError as e:
+        logging.info("Communication error: {}".format(e))
+    except OSError as e:
+        logging.debug("Connection error: {}".format(e))
+
+    if args.noretry:
         break
     time.sleep(.5)
 
